@@ -1,0 +1,40 @@
+name: Deploy to Production
+
+# This ONLY runs when you manually approve it
+# Requires pushing to 'main' branch (done via Pull Request from staging)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production  # This requires manual approval in GitHub settings
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check PHP syntax
+        run: find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+
+      - name: Deploy to Production via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.PROD_FTP_SERVER }}
+          username: ${{ secrets.PROD_FTP_USERNAME }}
+          password: ${{ secrets.PROD_FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.PROD_FTP_PATH }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            README.md
+            .github/**
+            prompts/**
+            docs/**
+
+      - name: Production deployment complete
+        run: echo "🚀 Deployed to PRODUCTION successfully!"

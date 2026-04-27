@@ -1,0 +1,43 @@
+name: Deploy to Staging
+
+# This runs automatically when you push to the 'staging' branch
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Get the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Basic PHP syntax check (catches obvious errors)
+      - name: Check PHP syntax
+        run: find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+
+      # Step 3: Deploy to staging server via FTP or SSH
+      # OPTION A: If using FTP (replace with your details in GitHub Secrets)
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.STAGING_FTP_SERVER }}
+          username: ${{ secrets.STAGING_FTP_USERNAME }}
+          password: ${{ secrets.STAGING_FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.STAGING_FTP_PATH }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            README.md
+            .github/**
+            prompts/**
+            docs/**
+
+      # Step 4: Notify (optional - can add Slack/email notification here)
+      - name: Deployment complete
+        run: echo "✅ Deployed to staging successfully!"

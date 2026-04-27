@@ -1,0 +1,32 @@
+# WordPress
+wp-config.php
+wp-content/uploads/
+wp-content/cache/
+wp-content/backup-db/
+*.log
+
+# Environment
+.env
+.env.local
+.env.staging
+.env.production
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Node (if any build tools used)
+node_modules/
+npm-debug.log
+
+# Composer
+vendor/
+
+# Temp files
+*.tmp
+*.bak
