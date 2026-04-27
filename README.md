@@ -63,8 +63,4 @@ wordpress-agent-system/
 4. Set up new GitHub repo for the client
 5. Done — all prompts and workflows are reusable
 
----
 
-## 👤 Ownership
-**Sagar** — End-to-end ownership
-Contact: Bhavin / Snehal for resources
