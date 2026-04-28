@@ -46,7 +46,7 @@ The only automated check in CI is `php -l` (syntax). There is no linter, no PHPC
 
 ## Known issues
 
-No outstanding deploy-workflow issues at this time. The three Phase 4 bugs originally documented here have been resolved — see **Resolved** below.
+No outstanding deploy-workflow issues at this time. The Phase 4 bugs originally documented here have been resolved — see **Resolved** below.
 
 ### Resolved
 
@@ -54,7 +54,9 @@ No outstanding deploy-workflow issues at this time. The three Phase 4 bugs origi
 
 2. **`actions/checkout@v3` was deprecated.** Both workflows pinned to v3. **Fix:** bumped both to `actions/checkout@v4`.
 
-3. **FTP step failed loudly when secrets were unset.** `STAGING_FTP_*` and `PROD_FTP_*` were referenced unconditionally, so any deploy reaching the FTP step would fail when secrets weren't configured. **Fix:** the FTP step is now gated on `if: ${{ secrets.<PREFIX>_FTP_SERVER != '' }}`, and a follow-up step emits a `::warning::` annotation when secrets are missing. **Note:** the secrets themselves still need to be set in repo Settings → Secrets to enable real FTP uploads — this fix handles the missing-secrets case gracefully, it does not configure them. Both workflows also gained a `workflow_dispatch:` trigger so they can be re-run on demand from the Actions UI.
+3. **FTP step failed loudly when secrets were unset.** `STAGING_FTP_*` and `PROD_FTP_*` were referenced unconditionally, so any deploy reaching the FTP step would fail when secrets weren't configured. **Fix:** the FTP step is now gated on `if: env.FTP_SERVER != ''`, and a follow-up step emits a `::warning::` annotation when secrets are missing. **Note:** the secrets themselves still need to be set in repo Settings → Secrets to enable real FTP uploads — this fix handles the missing-secrets case gracefully, it does not configure them. Both workflows also gained a `workflow_dispatch:` trigger so they can be re-run on demand from the Actions UI.
+
+4. **`secrets.*` is not available in step-level `if:` expressions.** The first attempt at fix #3 used `if: ${{ secrets.STAGING_FTP_SERVER != '' }}`, which GitHub Actions rejects with `Unrecognized named-value: 'secrets'`. Step-level `if:` only sees the `env`, `github`, `inputs`, `steps`, `runner`, `job`, and `matrix` contexts. **Fix:** bridge each FTP server secret into a job-level `env:` block (`FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}` for staging, `FTP_SERVER: ${{ secrets.PROD_FTP_SERVER }}` for production — `env:` at job level *can* reference `secrets.*`), then check `env.FTP_SERVER` in the step-level conditions.
 
 ## Agent behavior rules
 

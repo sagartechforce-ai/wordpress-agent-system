@@ -19,6 +19,12 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     environment: production  # Requires manual approval in repo settings.
+    # Bridge the FTP_SERVER secret into the job env so step-level `if:`
+    # conditions can read it. The `secrets` context is not directly available
+    # in step-level `if:` expressions; only env / github / inputs / steps /
+    # runner / job / matrix are.
+    env:
+      FTP_SERVER: ${{ secrets.PROD_FTP_SERVER }}
 
     steps:
       - name: Checkout code
@@ -35,7 +41,7 @@ jobs:
         run: find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Deploy to Production via FTP
-        if: ${{ secrets.PROD_FTP_SERVER != '' }}
+        if: env.FTP_SERVER != ''
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.PROD_FTP_SERVER }}
@@ -54,13 +60,13 @@ jobs:
             docs/**
 
       - name: FTP secrets check
-        if: ${{ secrets.PROD_FTP_SERVER == '' }}
+        if: env.FTP_SERVER == ''
         run: echo "::warning::FTP secrets not configured. Skipping deploy step. Configure PROD_FTP_* in repo Settings > Secrets to enable real deployment (Phase 4 task)."
 
       - name: Production deployment complete
-        if: ${{ secrets.PROD_FTP_SERVER != '' }}
+        if: env.FTP_SERVER != ''
         run: echo "🚀 Deployed to PRODUCTION successfully!"
 
       - name: Production deployment skipped
-        if: ${{ secrets.PROD_FTP_SERVER == '' }}
+        if: env.FTP_SERVER == ''
         run: echo "ℹ️  Production deploy skipped (no FTP secrets). Syntax check passed."

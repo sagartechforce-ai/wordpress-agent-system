@@ -17,6 +17,12 @@ on:
 jobs:
   deploy-staging:
     runs-on: ubuntu-latest
+    # Bridge the FTP_SERVER secret into the job env so step-level `if:`
+    # conditions can read it. The `secrets` context is not directly available
+    # in step-level `if:` expressions; only env / github / inputs / steps /
+    # runner / job / matrix are.
+    env:
+      FTP_SERVER: ${{ secrets.STAGING_FTP_SERVER }}
 
     steps:
       - name: Checkout code
@@ -33,7 +39,7 @@ jobs:
         run: find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Deploy via FTP
-        if: ${{ secrets.STAGING_FTP_SERVER != '' }}
+        if: env.FTP_SERVER != ''
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
@@ -52,13 +58,13 @@ jobs:
             docs/**
 
       - name: FTP secrets check
-        if: ${{ secrets.STAGING_FTP_SERVER == '' }}
+        if: env.FTP_SERVER == ''
         run: echo "::warning::FTP secrets not configured. Skipping deploy step. Configure STAGING_FTP_* in repo Settings > Secrets to enable real deployment (Phase 4 task)."
 
       - name: Deployment complete
-        if: ${{ secrets.STAGING_FTP_SERVER != '' }}
+        if: env.FTP_SERVER != ''
         run: echo "✅ Deployed to staging successfully!"
 
       - name: Deployment skipped
-        if: ${{ secrets.STAGING_FTP_SERVER == '' }}
+        if: env.FTP_SERVER == ''
         run: echo "ℹ️  Staging deploy skipped (no FTP secrets). Syntax check passed."
