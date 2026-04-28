@@ -44,6 +44,16 @@ The only automated check in CI is `php -l` (syntax). There is no linter, no PHPC
 - `wp-config.php`, `.env*`, `vendor/`, and `node_modules/` are gitignored — never commit them, and never add real credentials to `docs/client-config-template.md` (it is a template; secrets belong in GitHub Secrets).
 - When changing an agent's behavior, update both the system prompt in `docs/claude-project-system-prompts.md` **and** any affected prompt templates under `prompts/`. The user-facing instructions in `docs/HOW-TO-USE.md` and the table in `README.md` should also be kept in sync if the agent set or folder layout changes.
 
+## Known issues
+
+These are real bugs the team has triaged and deferred to **Phase 4** deployment-infrastructure work. They are not urgent — flag them if relevant, but do not fix them in unrelated PRs.
+
+1. **`Check PHP syntax` step fails when the repo contains zero PHP files.** Both `deploy-staging.yml` and `deploy-production.yml` run `find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"`. `grep -v` exits with status 1 when its input has no matching lines, so the step fails on a PHP-less repo. This actually prevented yesterday's accidental deploys from reaching the FTP step — fortunate side effect, but still a bug. Track for Phase 4 fix.
+
+2. **`actions/checkout@v3` is deprecated.** Both workflows pin to v3. Bump to `@v4` in Phase 4 along with the syntax-check fix.
+
+3. **FTP secrets are not yet configured.** `STAGING_FTP_*` and `PROD_FTP_*` are referenced in the workflows but unset in repo Settings → Secrets. Any deploy that reaches the FTP step will fail there. This is by design for now — it prevents accidental deploys to a misconfigured destination.
+
 ## Agent behavior rules
 
 ### When the user asks to build a WordPress feature
