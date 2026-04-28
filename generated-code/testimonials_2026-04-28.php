@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Register the techforce_testimonial custom post type.
+ * Register the tf_testimonial custom post type.
  *
  * @return void
  */
@@ -57,10 +57,10 @@ function techforce_testimonials_register_cpt() {
 		'supports'           => array( 'title', 'editor', 'thumbnail' ),
 	);
 
-	register_post_type( 'techforce_testimonial', $args );
+	register_post_type( 'tf_testimonial', $args );
 
 	register_post_meta(
-		'techforce_testimonial',
+		'tf_testimonial',
 		'_techforce_role_company',
 		array(
 			'type'              => 'string',
@@ -72,7 +72,7 @@ function techforce_testimonials_register_cpt() {
 	);
 
 	register_post_meta(
-		'techforce_testimonial',
+		'tf_testimonial',
 		'_techforce_rating',
 		array(
 			'type'              => 'integer',
@@ -104,7 +104,7 @@ function techforce_testimonials_add_meta_box() {
 		'techforce_testimonial_details',
 		__( 'Testimonial Details', 'techforce' ),
 		'techforce_testimonials_render_meta_box',
-		'techforce_testimonial',
+		'tf_testimonial',
 		'side',
 		'default'
 	);
@@ -203,7 +203,7 @@ function techforce_testimonials_save_meta( $post_id ) {
 		}
 	}
 }
-add_action( 'save_post_techforce_testimonial', 'techforce_testimonials_save_meta' );
+add_action( 'save_post_tf_testimonial', 'techforce_testimonials_save_meta' );
 
 /**
  * Return the inline CSS for the testimonials grid.
@@ -260,7 +260,7 @@ function techforce_testimonials_shortcode( $atts ) {
 
 	$query = new WP_Query(
 		array(
-			'post_type'      => 'techforce_testimonial',
+			'post_type'      => 'tf_testimonial',
 			'post_status'    => 'publish',
 			'posts_per_page' => $limit,
 			'orderby'        => 'date',

@@ -42,6 +42,18 @@ You are a WordPress code quality expert. Review the following code against WordP
    - Are complex functions documented?
    - PHPDoc blocks present for functions?
 
+7. **WordPress API Constraints (runtime, not syntax)**
+   These fail silently — `php -l` and static review will not catch them, but the feature breaks on a real WordPress install.
+   - **Post type slug ≤ 20 chars** (`register_post_type`). Over-limit returns `WP_Error` silently; the CPT never registers, no admin menu, no meta-box hooks, no REST routes. Count the slug.
+   - **Taxonomy slug ≤ 32 chars** (`register_taxonomy`). Same silent-failure mode.
+   - **Option name ≤ 191 chars** (`add_option`, `update_option`). MySQL utf8mb4 index limit since WP 4.2; longer names fail to persist.
+   - **Reserved post type slugs** — do NOT use: `post`, `page`, `attachment`, `revision`, `nav_menu_item`, `custom_css`, `customize_changeset`, `oembed_cache`, `user_request`, `wp_block`, `wp_template`, `wp_template_part`, `wp_global_styles`, `wp_navigation`. Also avoid query-var collisions like `action`, `author`, `order`, `theme`, `type`, `name`.
+   - **Reserved taxonomy slugs** — do NOT use: `category`, `post_tag`, `nav_menu`, `link_category`, `post_format`.
+   - **Underscore-prefixed meta keys** (`_my_field`) are intentionally hidden from the default Custom Fields UI. Not a bug, but flag it if the user expected the meta to appear there.
+   - **`menu_position` collisions with core** (5=Posts, 10=Media, 20=Pages, 25=Comments, 60=Appearance, 65=Plugins, 70=Users, 75=Tools, 80=Settings). WP auto-offsets so the menu still renders, but ordering becomes non-deterministic — prefer a unique decimal as a string, e.g. `'25.5'`.
+   - **Hook timing** — `register_post_type`, `register_taxonomy`, and `register_post_meta` must fire on or before `init`. Registering on `admin_init` or `wp_loaded` is too late for REST/CLI/early queries.
+   - **Custom `capability_type`** — if you set `capability_type` to anything other than `'post'`/`'page'`, the corresponding caps must be explicitly mapped to roles, or no admin UI renders even with `show_ui => true`.
+
 **Output format:**
 
 ## Code Standards Report
