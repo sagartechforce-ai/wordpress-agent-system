@@ -1,6 +1,7 @@
 name: Deploy to Staging
 
-# This runs automatically when you push to the 'staging' branch
+# Runs automatically when you push to the 'staging' branch,
+# or manually via the Actions UI ("Run workflow" button).
 on:
   push:
     branches:
@@ -11,23 +12,28 @@ on:
       - '.github/**'
       - 'prompts/**'
       - 'docs/**'
+  workflow_dispatch:
 
 jobs:
   deploy-staging:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Step 1: Get the code
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Step 2: Basic PHP syntax check (catches obvious errors)
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      # Lint every PHP file in the repo. xargs -r (no-run-if-empty)
+      # makes this pass cleanly when the repo has zero PHP files.
       - name: Check PHP syntax
-        run: find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+        run: find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
-      # Step 3: Deploy to staging server via FTP or SSH
-      # OPTION A: If using FTP (replace with your details in GitHub Secrets)
       - name: Deploy via FTP
+        if: ${{ secrets.STAGING_FTP_SERVER != '' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.STAGING_FTP_SERVER }}
@@ -45,6 +51,14 @@ jobs:
             prompts/**
             docs/**
 
-      # Step 4: Notify (optional - can add Slack/email notification here)
+      - name: FTP secrets check
+        if: ${{ secrets.STAGING_FTP_SERVER == '' }}
+        run: echo "::warning::FTP secrets not configured. Skipping deploy step. Configure STAGING_FTP_* in repo Settings > Secrets to enable real deployment (Phase 4 task)."
+
       - name: Deployment complete
+        if: ${{ secrets.STAGING_FTP_SERVER != '' }}
         run: echo "✅ Deployed to staging successfully!"
+
+      - name: Deployment skipped
+        if: ${{ secrets.STAGING_FTP_SERVER == '' }}
+        run: echo "ℹ️  Staging deploy skipped (no FTP secrets). Syntax check passed."

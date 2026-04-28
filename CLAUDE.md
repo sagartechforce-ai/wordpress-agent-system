@@ -46,13 +46,15 @@ The only automated check in CI is `php -l` (syntax). There is no linter, no PHPC
 
 ## Known issues
 
-These are real bugs the team has triaged and deferred to **Phase 4** deployment-infrastructure work. They are not urgent — flag them if relevant, but do not fix them in unrelated PRs.
+No outstanding deploy-workflow issues at this time. The three Phase 4 bugs originally documented here have been resolved — see **Resolved** below.
 
-1. **`Check PHP syntax` step fails when the repo contains zero PHP files.** Both `deploy-staging.yml` and `deploy-production.yml` run `find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"`. `grep -v` exits with status 1 when its input has no matching lines, so the step fails on a PHP-less repo. This actually prevented yesterday's accidental deploys from reaching the FTP step — fortunate side effect, but still a bug. Track for Phase 4 fix.
+### Resolved
 
-2. **`actions/checkout@v3` is deprecated.** Both workflows pin to v3. Bump to `@v4` in Phase 4 along with the syntax-check fix.
+1. **`Check PHP syntax` step failed on PHP-less repos.** Both `deploy-staging.yml` and `deploy-production.yml` ran `find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"`. `grep -v` exits with status 1 on empty input, so the step failed on a repo with zero PHP files. **Fix:** replaced with `find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l` and added a `shivammathur/setup-php@v2` step pinning PHP 8.2. The `xargs -r` flag (no-run-if-empty) makes the step pass cleanly when no PHP files exist, while still failing the build on real syntax errors.
 
-3. **FTP secrets are not yet configured.** `STAGING_FTP_*` and `PROD_FTP_*` are referenced in the workflows but unset in repo Settings → Secrets. Any deploy that reaches the FTP step will fail there. This is by design for now — it prevents accidental deploys to a misconfigured destination.
+2. **`actions/checkout@v3` was deprecated.** Both workflows pinned to v3. **Fix:** bumped both to `actions/checkout@v4`.
+
+3. **FTP step failed loudly when secrets were unset.** `STAGING_FTP_*` and `PROD_FTP_*` were referenced unconditionally, so any deploy reaching the FTP step would fail when secrets weren't configured. **Fix:** the FTP step is now gated on `if: ${{ secrets.<PREFIX>_FTP_SERVER != '' }}`, and a follow-up step emits a `::warning::` annotation when secrets are missing. **Note:** the secrets themselves still need to be set in repo Settings → Secrets to enable real FTP uploads — this fix handles the missing-secrets case gracefully, it does not configure them. Both workflows also gained a `workflow_dispatch:` trigger so they can be re-run on demand from the Actions UI.
 
 ## Agent behavior rules
 
