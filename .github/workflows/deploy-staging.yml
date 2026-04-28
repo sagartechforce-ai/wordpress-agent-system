@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - staging
+    paths-ignore:
+      - 'CLAUDE.md'
+      - 'README.md'
+      - '.github/**'
+      - 'prompts/**'
+      - 'docs/**'
 
 jobs:
   deploy-staging:
@@ -34,6 +40,7 @@ jobs:
             **/.git*/**
             **/node_modules/**
             README.md
+            CLAUDE.md
             .github/**
             prompts/**
             docs/**
