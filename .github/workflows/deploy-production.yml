@@ -1,7 +1,8 @@
 name: Deploy to Production
 
-# This ONLY runs when you manually approve it
-# Requires pushing to 'main' branch (done via Pull Request from staging)
+# Runs automatically when you push to the 'main' branch (via PR from staging),
+# or manually via the Actions UI ("Run workflow" button).
+# Note: the 'production' environment requires manual approval in repo settings.
 on:
   push:
     branches:
@@ -12,20 +13,35 @@ on:
       - '.github/**'
       - 'prompts/**'
       - 'docs/**'
+  workflow_dispatch:
 
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
-    environment: production  # This requires manual approval in GitHub settings
-    
+    environment: production  # Requires manual approval in repo settings.
+    # Bridge the FTP_SERVER secret into the job env so step-level `if:`
+    # conditions can read it. The `secrets` context is not directly available
+    # in step-level `if:` expressions; only env / github / inputs / steps /
+    # runner / job / matrix are.
+    env:
+      FTP_SERVER: ${{ secrets.PROD_FTP_SERVER }}
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      # Lint every PHP file in the repo. xargs -r (no-run-if-empty)
+      # makes this pass cleanly when the repo has zero PHP files.
       - name: Check PHP syntax
-        run: find . -name "*.php" -exec php -l {} \; | grep -v "No syntax errors"
+        run: find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -r -n1 php -l
 
       - name: Deploy to Production via FTP
+        if: env.FTP_SERVER != ''
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.PROD_FTP_SERVER }}
@@ -43,5 +59,14 @@ jobs:
             prompts/**
             docs/**
 
+      - name: FTP secrets check
+        if: env.FTP_SERVER == ''
+        run: echo "::warning::FTP secrets not configured. Skipping deploy step. Configure PROD_FTP_* in repo Settings > Secrets to enable real deployment (Phase 4 task)."
+
       - name: Production deployment complete
+        if: env.FTP_SERVER != ''
         run: echo "🚀 Deployed to PRODUCTION successfully!"
+
+      - name: Production deployment skipped
+        if: env.FTP_SERVER == ''
+        run: echo "ℹ️  Production deploy skipped (no FTP secrets). Syntax check passed."
